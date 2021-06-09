@@ -13,8 +13,13 @@ import android.os.Bundle;
 import android.view.MenuItem;
 
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+
+    //Authentication variables
+    private FirebaseAuth mAuth;
 
     Toolbar toolbar;
     private DrawerLayout drawer;
@@ -40,6 +45,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
+        // Initialize Authentication variables
+        mAuth = FirebaseAuth.getInstance();
+
 
     }
 
@@ -54,6 +62,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 i = new Intent(this, SettingsActivity.class);
                 startActivity(i);
                 break;
+            /*case R.id.nav_logout:
+                i = new Intent(this, SettingsActivity.class);
+                startActivity(i);
+                break;*/
+
 
         }
         drawer.closeDrawer(GravityCompat.START);
@@ -72,5 +85,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if(currentUser != null) {
+            startActivity(new Intent(this, RegisterActivity.class));
 
+        }
+    }
 }

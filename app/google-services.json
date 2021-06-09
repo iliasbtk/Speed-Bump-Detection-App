@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "496938580967",
+    "project_id": "speed-bump-detection",
+    "storage_bucket": "speed-bump-detection.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:496938580967:android:6de134c4ed0105185d9b42",
+        "android_client_info": {
+          "package_name": "com.example.speedbumpdetection"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "496938580967-rbaubkemrsefij4ss820j40b98eg1k6r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDjgCq8lDwBBPkZX5b-K2-azp4YhPG65WI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "496938580967-rbaubkemrsefij4ss820j40b98eg1k6r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
