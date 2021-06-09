@@ -1,14 +1,14 @@
 package com.example.speedbumpdetection;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
-
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -17,6 +17,7 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 
 public class RegisterActivity extends AppCompatActivity {
+
 
     private TextInputEditText txt_input_email_reg, txt_input_password_reg;
     Button btn_register, btn_go_to_login;
@@ -28,12 +29,13 @@ public class RegisterActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_sign_up);
+        setContentView(R.layout.activity_register);
 
-        txt_input_email_reg.findViewById(R.id.txt_input_email_reg);
-        txt_input_password_reg.findViewById(R.id.txt_input_password_reg);
-        btn_register.findViewById(R.id.btn_register);
-        btn_go_to_login.findViewById(R.id.btn_go_to_login);
+
+        txt_input_email_reg = findViewById(R.id.txt_input_email_reg);
+        txt_input_password_reg = findViewById(R.id.txt_input_password_reg);
+        btn_register = findViewById(R.id.btn_register);
+        btn_go_to_login = findViewById(R.id.btn_go_to_login);
 
         // Initialize Authentication variables
         mAuth = FirebaseAuth.getInstance();
@@ -77,4 +79,6 @@ public class RegisterActivity extends AppCompatActivity {
             });
         }
     }
+
+
 }

@@ -11,6 +11,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
@@ -90,8 +91,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onStart();
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if(currentUser != null) {
-            startActivity(new Intent(this, RegisterActivity.class));
 
+            Toast.makeText(this,"User: "+currentUser.getEmail()+ "connected",Toast.LENGTH_LONG);
+
+        }else{
+            startActivity(new Intent(this, LoginActivity.class));
         }
     }
 }
