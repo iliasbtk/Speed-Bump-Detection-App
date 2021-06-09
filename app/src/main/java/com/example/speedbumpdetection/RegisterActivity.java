@@ -18,8 +18,8 @@ import com.google.firebase.auth.FirebaseAuth;
 
 public class RegisterActivity extends AppCompatActivity {
 
-    private TextInputEditText txt_input_email, txt_input_password;
-    Button btn_register, btn_login;
+    private TextInputEditText txt_input_email_reg, txt_input_password_reg;
+    Button btn_register, btn_go_to_login;
 
     //Authentication variables
     private FirebaseAuth mAuth;
@@ -30,10 +30,10 @@ public class RegisterActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_up);
 
-        txt_input_email.findViewById(R.id.txt_input_email_reg);
-        txt_input_password.findViewById(R.id.txt_input_password_reg);
+        txt_input_email_reg.findViewById(R.id.txt_input_email_reg);
+        txt_input_password_reg.findViewById(R.id.txt_input_password_reg);
         btn_register.findViewById(R.id.btn_register);
-        btn_login.findViewById(R.id.btn_go_to_login);
+        btn_go_to_login.findViewById(R.id.btn_go_to_login);
 
         // Initialize Authentication variables
         mAuth = FirebaseAuth.getInstance();
@@ -45,7 +45,7 @@ public class RegisterActivity extends AppCompatActivity {
             }
         });
 
-        btn_login.setOnClickListener(new View.OnClickListener() {
+        btn_go_to_login.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 startActivity(new Intent(RegisterActivity.this, LoginActivity.class));
@@ -55,14 +55,14 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void registerUser(){
-        String email = txt_input_email.getText().toString();
-        String password = txt_input_password.getText().toString();
+        String email = txt_input_email_reg.getText().toString();
+        String password = txt_input_password_reg.getText().toString();
         if(TextUtils.isEmpty(email)){
-            txt_input_email.setError("Please enter an email address");
-            txt_input_email.requestFocus();
+            txt_input_email_reg.setError("Please enter an email address");
+            txt_input_email_reg.requestFocus();
         }else if(TextUtils.isEmpty(password)){
-            txt_input_password.setError(("Please enter a password"));
-            txt_input_password.requestFocus();
+            txt_input_password_reg.setError(("Please enter a password"));
+            txt_input_password_reg.requestFocus();
         }else{
             mAuth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                 @Override
