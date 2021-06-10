@@ -15,17 +15,33 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.speedbumpdetection.databinding.ActivityMapsBinding;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.location.FusedLocationProviderClient;
+
+import java.util.ArrayList;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
     private ActivityMapsBinding binding;
 
+
+
     private static final int PERMISSION_FINE_LOCATION = 99;
+
+    //Google API for GPS location services
+    FusedLocationProviderClient fusedLocationProviderClient;
+
+    //Speed Bumps Markers
+    ArrayList<LatLng> speedBumpsList = new ArrayList<>();
+    LatLng speedBump1 = new LatLng(35.7296019, -0.5876281);
+    LatLng speedBump2 = new LatLng(35.7302622, -0.5876606);
+    MarkerOptions speedBumpMarkerOptions;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,11 +68,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        getSpeedBumpsLocation();
 
-        // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+        //Add speed bumps locations
+        for(int i=0; i<speedBumpsList.size();i++){
+            speedBumpMarkerOptions = new MarkerOptions().position(speedBumpsList.get(i)).title("Speed Bump");
+            speedBumpMarkerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.speed_bump));
+            mMap.addMarker(speedBumpMarkerOptions);
+        }
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             enableLocation();
@@ -87,5 +106,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private void enableLocation(){
         mMap.setMyLocationEnabled(true);
 
+    }
+    private void getSpeedBumpsLocation(){
+        speedBumpsList.add(speedBump1);
+        speedBumpsList.add(speedBump2);
     }
 }
