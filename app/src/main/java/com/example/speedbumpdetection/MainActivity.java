@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         switch (item.getItemId()){
             case R.id.nav_map:
-                i = new Intent(this, MapActivity.class);
+                i = new Intent(this, MapsActivity.class);
                 startActivity(i);
                 break;
             case R.id.nav_settings:
@@ -89,13 +89,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     protected void onStart() {
         super.onStart();
-        FirebaseUser currentUser = mAuth.getCurrentUser();
+        /*FirebaseUser currentUser = mAuth.getCurrentUser();
         if(currentUser != null) {
 
             Toast.makeText(this,"User: "+currentUser.getEmail()+ "connected",Toast.LENGTH_LONG);
 
         }else{
             startActivity(new Intent(this, LoginActivity.class));
-        }
+        }*/
     }
 }
