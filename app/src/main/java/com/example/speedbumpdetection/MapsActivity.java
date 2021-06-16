@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
-        , GoogleMap.OnMarkerClickListener {
+        , GoogleMap.OnMarkerClickListener, GoogleMap.OnMapLongClickListener {
 
     private GoogleMap mMap;
     private ActivityMapsBinding binding;
@@ -111,6 +111,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         mMap.setOnMarkerClickListener(this);
+
+        mMap.setOnMapLongClickListener(this);
     }
 
     @Override
@@ -145,13 +147,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-    private void getLocationName(Location location){
-
+    private String getLocationName(Location location){
+        String address ="";
         geocoder = new Geocoder(this, Locale.getDefault());
         try {
             List<Address> addressList = geocoder.getFromLocation(location.getLatitude()
                     , location.getLongitude(), 1);
-            String address ="";
+
 
             if(addressList != null && addressList.size()>0){
                 Log.d("Address", addressList.get(0).toString());
@@ -167,10 +169,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Toast.makeText(this, address,Toast.LENGTH_LONG).show();
             }else{
                 Log.d("Address", "Unkown address");
+                address += "Unknown address";
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return address;
 
     }
 
@@ -186,9 +190,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         markerLocation.setLatitude(marker.getPosition().latitude);
         markerLocation.setLongitude(marker.getPosition().longitude);
         getLocationName(markerLocation);
-
-
-
         return false;
     }
+
+    @Override
+    public void onMapLongClick(@NonNull LatLng latLng) {
+        Location location = new Location("Long click marker");
+        location.setLatitude(latLng.latitude);
+        location.setLongitude(latLng.longitude);
+        mMap.addMarker(new MarkerOptions().position(latLng).title(getLocationName(location)));
+
+    }
+
 }
