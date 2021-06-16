@@ -13,6 +13,7 @@ import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.location.LocationServices;
@@ -31,6 +32,8 @@ import com.google.android.gms.tasks.Task;
 import com.google.maps.DirectionsApi;
 import com.google.maps.DirectionsApiRequest;
 import com.google.maps.GeoApiContext;
+import com.google.maps.PendingResult;
+import com.google.maps.model.DirectionsResult;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,6 +42,8 @@ import java.util.Locale;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         , GoogleMap.OnMarkerClickListener, GoogleMap.OnMapLongClickListener {
+
+    TextView txt_display;
 
     private GoogleMap mMap;
     private ActivityMapsBinding binding;
@@ -50,6 +55,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     //User Location
     private Location userLocation;
+    private LatLng userLatLng;
 
     //Speed Bumps Markers
     ArrayList<LatLng> speedBumpsList = new ArrayList<>();
@@ -58,6 +64,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     MarkerOptions speedBumpMarkerOptions;
 
     Geocoder geocoder;
+
+    //Directions
+    GeoApiContext geoApiContext = null;
 
 
 
@@ -76,6 +85,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+
+        txt_display = findViewById(R.id.txt_display);
 
     }
 
@@ -113,6 +124,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setOnMarkerClickListener(this);
 
         mMap.setOnMapLongClickListener(this);
+
+        if(geoApiContext == null){
+            geoApiContext = new GeoApiContext.Builder()
+                    .apiKey(getString(R.string.google_maps_key))
+                    .build();
+        }
     }
 
     @Override
@@ -137,8 +154,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onSuccess(Location location) {
                 userLocation = location;
-                LatLng latLng = new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16));
+                userLatLng = new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 16));
                 //getLocationName(location);
 
             }
@@ -166,7 +183,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if(addressList.get(0).getSubAdminArea() != null){
                     address +=  addressList.get(0).getSubAdminArea();
                 }
-                Toast.makeText(this, address,Toast.LENGTH_LONG).show();
+                //Toast.makeText(this, address,Toast.LENGTH_LONG).show();
             }else{
                 Log.d("Address", "Unkown address");
                 address += "Unknown address";
@@ -176,6 +193,46 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         return address;
 
+    }
+
+    private void calculateDirections(Marker marker){
+
+
+
+        com.google.maps.model.LatLng dest = new com.google.maps.model.LatLng(marker.getPosition().latitude, marker.getPosition().longitude);
+        DirectionsApiRequest routes = new DirectionsApiRequest(geoApiContext);
+        routes.alternatives(true);
+        routes.origin(String.valueOf(userLatLng));
+        routes.origin(
+                new com.google.maps.model.LatLng(
+                        userLatLng.latitude,
+                        userLatLng.longitude
+                )
+        );
+        routes.destination(String.valueOf(dest)).setCallback(new PendingResult.Callback<DirectionsResult>() {
+            @Override
+            public void onResult(DirectionsResult result) {
+                String routeDetails = "";
+                Log.d("Routes", "onResult: routes: " + result.routes[0].toString());
+                Log.d("Routes", "onResult: duration: " + result.routes[0].legs[0].duration);
+                Log.d("Routes", "onResult: distance: " + result.routes[0].legs[0].distance);
+                Log.d("Routes", "onResult: geocodedWayPoints: " + result.geocodedWaypoints[0].toString());
+
+                //routeDetails += result.routes[0].toString();
+                routeDetails += result.routes[0].legs[0].duration;
+                routeDetails += result.routes[0].legs[0].distance;
+                //routeDetails += result.geocodedWaypoints[0].toString();
+
+                txt_display.setText(routeDetails);
+
+
+            }
+
+            @Override
+            public void onFailure(Throwable e) {
+                Log.e("Routes", "onFailure: " + e.getMessage() );
+            }
+        });
     }
 
     private void getSpeedBumpsLocation(){
@@ -189,7 +246,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Location markerLocation = new Location("Marker");
         markerLocation.setLatitude(marker.getPosition().latitude);
         markerLocation.setLongitude(marker.getPosition().longitude);
-        getLocationName(markerLocation);
+        marker.setTitle(getLocationName(markerLocation));
+        calculateDirections(marker);
+
         return false;
     }
 
