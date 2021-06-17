@@ -7,6 +7,7 @@ import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
@@ -16,6 +17,12 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.KeyEvent;
+import android.view.View;
+import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -48,9 +55,11 @@ import java.util.List;
 import java.util.Locale;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
-        , GoogleMap.OnMarkerClickListener, GoogleMap.OnMapLongClickListener {
+        , GoogleMap.OnMarkerClickListener, GoogleMap.OnMapLongClickListener
+        , GoogleMap.OnPolylineClickListener {
 
-    TextView txt_display;
+    TextView txt_route_info;
+    EditText input_search;
 
     private GoogleMap mMap;
     private ActivityMapsBinding binding;
@@ -68,12 +77,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     ArrayList<LatLng> speedBumpsList = new ArrayList<>();
     LatLng speedBump1 = new LatLng(35.7296019, -0.5876281);
     LatLng speedBump2 = new LatLng(35.7302622, -0.5876606);
+    LatLng speedBump3 = new LatLng(35.7291512, -0.5856882);
     MarkerOptions speedBumpMarkerOptions;
 
     Geocoder geocoder;
 
     //Directions
     GeoApiContext geoApiContext = null;
+
+    ArrayList<PolylineData> polylineDataList = new ArrayList<>();
+
+
+
 
 
 
@@ -93,7 +108,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
-        txt_display = findViewById(R.id.txt_display);
+        txt_route_info = findViewById(R.id.txt_route_info);
+        input_search = findViewById(R.id.input_search);
 
     }
 
@@ -110,6 +126,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        input_search.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
+                if(i == EditorInfo.IME_ACTION_SEARCH
+                        || i == EditorInfo.IME_ACTION_DONE
+                        || keyEvent.getAction() == keyEvent.ACTION_DOWN
+                        || keyEvent.getAction() == keyEvent.KEYCODE_ENTER){
+                    findGeoLocation();
+
+                }
+                return false;
+            }
+        });
         getSpeedBumpsLocation();
 
         //Add speed bumps locations
@@ -130,13 +159,35 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         mMap.setOnMarkerClickListener(this);
-
         mMap.setOnMapLongClickListener(this);
+        mMap.setOnPolylineClickListener(this);
+        //mMap.setOnInfoWindowClickListener(this);
 
         if(geoApiContext == null){
             geoApiContext = new GeoApiContext.Builder()
                     .apiKey(getString(R.string.google_maps_key))
                     .build();
+        }
+    }
+
+    private void findGeoLocation() {
+        String searchInput = input_search.getText().toString();
+        Geocoder geocoder = new Geocoder(MapsActivity.this);
+        List<Address> addresses = new ArrayList<>();
+        try{
+            addresses =geocoder.getFromLocationName(searchInput, 1);
+        }catch(IOException e){
+
+        }
+        if(addresses.size()>0){
+            Address address = addresses.get(0);
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(
+                    address.getLatitude(), address.getLongitude()), 16));
+            hideInputKeyboard();
+            mMap.addMarker(new MarkerOptions()
+                    .position(new LatLng(
+                            address.getLatitude(), address.getLongitude()))
+                   .title(address.getAddressLine(0)));
         }
     }
 
@@ -232,7 +283,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 routeDetails += result.routes[0].legs[0].distance;
                 //routeDetails += result.geocodedWaypoints[0].toString();
 
-                txt_display.setText(routeDetails);
+                txt_route_info.setText(routeDetails);
 
                 addRoutesToMap(result);
 
@@ -241,7 +292,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onFailure(Throwable e) {
                 Log.e("Routes", "onFailure: " + e.getMessage() );
-                txt_display.setText("Unknown Address");
+                txt_route_info.setText("Unknown Address");
             }
         });
     }
@@ -250,27 +301,52 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
+                if(polylineDataList.size() > 0){
+                    for(PolylineData polylineData: polylineDataList){
+                        polylineData.getPolyline().remove();
+                    }
+                    polylineDataList.clear();
+                    polylineDataList = new ArrayList<>();
+                }
+                double duration = 999999999;
 
                 for(DirectionsRoute route: result.routes){
                     List<com.google.maps.model.LatLng> decodeRoute = PolylineEncoding
                             .decode(route.overviewPolyline.getEncodedPath());
                     List<LatLng> newDecodeRoute = new ArrayList<>();
+                    int speedBumpNumber =0;
                     for(com.google.maps.model.LatLng latLng: decodeRoute){
                         newDecodeRoute.add(new LatLng(latLng.lat, latLng.lng));
+                        if(speedBumpsList.contains(new LatLng(latLng.lat, latLng.lng))){
+                            speedBumpNumber++;
+                        }
+
                     }
                     Polyline polyline = mMap.addPolyline(new PolylineOptions().addAll(newDecodeRoute));
+
                     polyline.setColor(ContextCompat.getColor(MapsActivity.this, R.color.darkGrey));
                     polyline.setClickable(true);
+                    polylineDataList.add(new PolylineData(polyline, route.legs[0],speedBumpNumber));
+
+                    double mDuration = route.legs[0].duration.inSeconds;
+                    if(mDuration < duration){
+                        duration = mDuration;
+                        onPolylineClick(polyline);
+                    }
 
                 }
 
+
             }
+
+
         });
     }
 
     private void getSpeedBumpsLocation(){
         speedBumpsList.add(speedBump1);
         speedBumpsList.add(speedBump2);
+        speedBumpsList.add(speedBump3);
     }
 
     @Override
@@ -292,6 +368,53 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         location.setLongitude(latLng.longitude);
         mMap.addMarker(new MarkerOptions().position(latLng).title(getLocationName(location)));
 
+    }
+
+    @SuppressLint("SetTextI18n")
+    @Override
+    public void onPolylineClick(@NonNull Polyline polyline) {
+        int routeNumber=0;
+        for(PolylineData polylineData: polylineDataList){
+            routeNumber ++;
+            if(polyline.getId().equals(polylineData.getPolyline().getId())){
+                polylineData.getPolyline().setColor(
+                        ContextCompat.getColor(MapsActivity.this,R.color.blue));
+                polylineData.getPolyline().setZIndex(1);
+                LatLng destLocation = new LatLng(
+                        polylineData.getDirectionsLeg().endLocation.lat,
+                        polylineData.getDirectionsLeg().endLocation.lng
+                );
+                Marker destMarker = mMap.addMarker(new MarkerOptions()
+                        .position(destLocation)
+                        .title("trip: "+routeNumber)
+                        .snippet("Duration: "+ polylineData.getDirectionsLeg().duration)
+
+                );
+                txt_route_info.setText("Duration: "+ polylineData.getDirectionsLeg().duration +
+                        " Distance: "+ polylineData.getDirectionsLeg().distance +
+                        " Duration in Traffic: "+ polylineData.getDirectionsLeg()
+                        .durationInTraffic + " Speed Bumps: "+polylineData.getSpeedBumpNumber());
+
+                destMarker.showInfoWindow();
+
+            }else{
+                polylineData.getPolyline().setColor(
+                        ContextCompat.getColor(MapsActivity.this,R.color.darkGrey));
+                polylineData.getPolyline().setZIndex(0);
+
+            }
+        }
+
+
+
+    }
+    private void hideInputKeyboard(){
+        View view = this.getCurrentFocus();
+        if(view != null){
+            InputMethodManager imm = (InputMethodManager)getSystemService(
+                    Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
     }
 
 }
