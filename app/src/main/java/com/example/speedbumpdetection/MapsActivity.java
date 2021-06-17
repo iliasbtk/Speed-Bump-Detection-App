@@ -2,6 +2,7 @@ package com.example.speedbumpdetection;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
@@ -12,6 +13,8 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -26,6 +29,8 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.speedbumpdetection.databinding.ActivityMapsBinding;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.tasks.Task;
@@ -33,7 +38,9 @@ import com.google.maps.DirectionsApi;
 import com.google.maps.DirectionsApiRequest;
 import com.google.maps.GeoApiContext;
 import com.google.maps.PendingResult;
+import com.google.maps.internal.PolylineEncoding;
 import com.google.maps.model.DirectionsResult;
+import com.google.maps.model.DirectionsRoute;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -89,6 +96,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         txt_display = findViewById(R.id.txt_display);
 
     }
+
 
     /**
      * Manipulates the map once available.
@@ -218,6 +226,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Log.d("Routes", "onResult: distance: " + result.routes[0].legs[0].distance);
                 Log.d("Routes", "onResult: geocodedWayPoints: " + result.geocodedWaypoints[0].toString());
 
+
                 //routeDetails += result.routes[0].toString();
                 routeDetails += result.routes[0].legs[0].duration;
                 routeDetails += result.routes[0].legs[0].distance;
@@ -225,12 +234,36 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 txt_display.setText(routeDetails);
 
+                addRoutesToMap(result);
 
             }
 
             @Override
             public void onFailure(Throwable e) {
                 Log.e("Routes", "onFailure: " + e.getMessage() );
+                txt_display.setText("Unknown Address");
+            }
+        });
+    }
+
+    private void addRoutesToMap(DirectionsResult result){
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+
+                for(DirectionsRoute route: result.routes){
+                    List<com.google.maps.model.LatLng> decodeRoute = PolylineEncoding
+                            .decode(route.overviewPolyline.getEncodedPath());
+                    List<LatLng> newDecodeRoute = new ArrayList<>();
+                    for(com.google.maps.model.LatLng latLng: decodeRoute){
+                        newDecodeRoute.add(new LatLng(latLng.lat, latLng.lng));
+                    }
+                    Polyline polyline = mMap.addPolyline(new PolylineOptions().addAll(newDecodeRoute));
+                    polyline.setColor(ContextCompat.getColor(MapsActivity.this, R.color.darkGrey));
+                    polyline.setClickable(true);
+
+                }
+
             }
         });
     }
