@@ -7,7 +7,9 @@ import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
@@ -41,6 +43,7 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.maps.DirectionsApi;
 import com.google.maps.DirectionsApiRequest;
 import com.google.maps.GeoApiContext;
@@ -54,9 +57,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import static com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_AZURE;
+
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         , GoogleMap.OnMarkerClickListener, GoogleMap.OnMapLongClickListener
-        , GoogleMap.OnPolylineClickListener {
+        , GoogleMap.OnPolylineClickListener, GoogleMap.OnMapClickListener
+        , GoogleMap.OnInfoWindowClickListener{
 
     TextView txt_route_info;
     EditText input_search;
@@ -93,7 +99,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     ArrayList<PolylineData> polylineDataList = new ArrayList<>();
 
-//    ArrayList<LatLng> markersList = new ArrayList<>();
+    ArrayList<LatLng> markersPositionsList = new ArrayList<>();
+    ArrayList<Marker> markersList = new ArrayList<>();
+    ArrayList<Marker> destinationMarkersList = new ArrayList<>();
+
 
     
 
@@ -168,11 +177,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
 
-
+        mMap.setOnMapClickListener(this);
         mMap.setOnMarkerClickListener(this);
         mMap.setOnMapLongClickListener(this);
         mMap.setOnPolylineClickListener(this);
-        //mMap.setOnInfoWindowClickListener(this);
+        mMap.setOnInfoWindowClickListener(this);
 
         if(geoApiContext == null){
             geoApiContext = new GeoApiContext.Builder()
@@ -269,6 +278,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
 
+
+
         com.google.maps.model.LatLng dest = new com.google.maps.model.LatLng(marker.getPosition().latitude, marker.getPosition().longitude);
         DirectionsApiRequest routes = new DirectionsApiRequest(geoApiContext);
         routes.alternatives(true);
@@ -292,7 +303,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 //routeDetails += result.routes[0].toString();
                 routeDetails += result.routes[0].legs[0].duration;
                 routeDetails += result.routes[0].legs[0].distance;
-                //routeDetails += result.geocodedWaypoints[0].toString();
+                routeDetails += result.geocodedWaypoints[0].toString();
 
                 txt_route_info.setText(routeDetails);
 
@@ -319,6 +330,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     polylineDataList.clear();
                     polylineDataList = new ArrayList<>();
                 }
+
                 double duration = 999999999;
 
                 for(DirectionsRoute route: result.routes){
@@ -348,10 +360,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         onPolylineClick(polyline);
                     }
 
+
                 }
 
 
+
+
             }
+
 
 
         });
@@ -375,7 +391,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         markerLocation.setLatitude(marker.getPosition().latitude);
         markerLocation.setLongitude(marker.getPosition().longitude);
         marker.setTitle(getLocationName(markerLocation));
-        calculateDirections(marker);
+
 
         return false;
     }
@@ -385,7 +401,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Location location = new Location("Long click marker");
         location.setLatitude(latLng.latitude);
         location.setLongitude(latLng.longitude);
-        mMap.addMarker(new MarkerOptions().position(latLng).title(getLocationName(location)));
+        mMap.addMarker(new MarkerOptions().position(latLng).title(getLocationName(location)).snippet("Draw Routes?"));
 
     }
 
@@ -399,22 +415,32 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 polylineData.getPolyline().setColor(
                         ContextCompat.getColor(MapsActivity.this,R.color.blue));
                 polylineData.getPolyline().setZIndex(1);
-                LatLng destLocation = new LatLng(
+                /*LatLng destLocation = new LatLng(
                         polylineData.getDirectionsLeg().endLocation.lat,
                         polylineData.getDirectionsLeg().endLocation.lng
-                );
+                );*/
+
+                /*if(destinationMarkersList.size() > 1){
+                    destinationMarkersList.get(0).remove();
+                    destinationMarkersList.clear();
+                }
+
                 Marker destMarker = mMap.addMarker(new MarkerOptions()
                         .position(destLocation)
                         .title("trip: "+routeNumber)
                         .snippet("Duration: "+ polylineData.getDirectionsLeg().duration)
 
                 );
+
+                destinationMarkersList.add(destMarker);*/
+
                 txt_route_info.setText("Duration: "+ polylineData.getDirectionsLeg().duration +
                         " Distance: "+ polylineData.getDirectionsLeg().distance +
                         " Duration in Traffic: "+ polylineData.getDirectionsLeg()
-                        .durationInTraffic + " Speed Bumps: "+polylineData.getSpeedBumpNumber());
+                        .durationInTraffic + " Speed Bumps: "+polylineData.getSpeedBumpNumber()+
+                        " Trip: "+routeNumber);
 
-                destMarker.showInfoWindow();
+//                destMarker.showInfoWindow();
 
             }else{
                 polylineData.getPolyline().setColor(
@@ -440,4 +466,66 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
+    @Override
+    public void onMapClick(@NonNull LatLng latLng) {
+        if(markersPositionsList.size() == 1){
+            markersList.get(0).remove();
+            markersPositionsList.clear();
+            markersList.clear();
+
+        }
+        if(polylineDataList.size() > 0){
+            for(PolylineData polylineData: polylineDataList){
+                polylineData.getPolyline().remove();
+            }
+            polylineDataList.clear();
+        }
+
+        Location location = new Location("On map click marker");
+        location.setLatitude(latLng.latitude);
+        location.setLongitude(latLng.longitude);
+
+        markersPositionsList.add(latLng);
+
+        MarkerOptions targetMarkerOptions = new MarkerOptions()
+                .position(markersPositionsList.get(0))
+                .title(getLocationName(location)).snippet("Draw Routes?");
+
+        targetMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(HUE_AZURE));
+        Marker onMapClickMarker =  mMap.addMarker(targetMarkerOptions);
+        markersList.add(onMapClickMarker);
+
+
+    }
+
+    @Override
+    public void onInfoWindowClick(@NonNull  Marker marker) {
+        Location location = new Location("Marker");
+        location.setLatitude(marker.getPosition().latitude);
+        location.setLongitude(marker.getPosition().longitude);
+
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+        builder.setMessage(marker.getSnippet())
+                .setCancelable(true)
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        dialogInterface.cancel();
+                        calculateDirections(marker);
+
+
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        dialogInterface.cancel();
+
+                    }
+                })
+                .create()
+                .show();
+
+    }
 }
