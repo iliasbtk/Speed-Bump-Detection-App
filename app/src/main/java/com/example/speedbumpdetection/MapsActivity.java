@@ -80,12 +80,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     LatLng speedBump3 = new LatLng(35.7291512, -0.5856882);
     MarkerOptions speedBumpMarkerOptions;
 
+    ArrayList<LatLng> speedBumpsListRounded = new ArrayList<>();
+    LatLng speedBumpR1 = new LatLng(35.7296, -0.5876);
+    LatLng speedBumpR2 = new LatLng(35.7303, -0.5877);
+    LatLng speedBumpR3 = new LatLng(35.7291, -0.5857);
+
+
     Geocoder geocoder;
 
     //Directions
     GeoApiContext geoApiContext = null;
 
     ArrayList<PolylineData> polylineDataList = new ArrayList<>();
+
+//    ArrayList<LatLng> markersList = new ArrayList<>();
+
+    
 
 
 
@@ -157,6 +167,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_FINE_LOCATION);
             }
         }
+
 
         mMap.setOnMarkerClickListener(this);
         mMap.setOnMapLongClickListener(this);
@@ -320,6 +331,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         if(speedBumpsList.contains(new LatLng(latLng.lat, latLng.lng))){
                             speedBumpNumber++;
                         }
+                        if(speedBumpsListRounded.contains(new LatLng(roundNumber(latLng.lat),roundNumber(latLng.lng)))){
+                            speedBumpNumber++;
+                        }
 
                     }
                     Polyline polyline = mMap.addPolyline(new PolylineOptions().addAll(newDecodeRoute));
@@ -347,7 +361,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         speedBumpsList.add(speedBump1);
         speedBumpsList.add(speedBump2);
         speedBumpsList.add(speedBump3);
+
+        speedBumpsListRounded.add(speedBumpR1);
+        speedBumpsListRounded.add(speedBumpR2);
+        speedBumpsListRounded.add(speedBumpR3);
     }
+
 
     @Override
     public boolean onMarkerClick(@NonNull Marker marker) {
@@ -416,5 +435,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
         }
     }
+    private double roundNumber(double n){
+        return (double)Math.round(n * 10000d) / 10000d;
+    }
+
 
 }
