@@ -66,17 +66,20 @@ public class LoginActivity extends AppCompatActivity {
             txt_input_password_login.setError(("Please enter a password"));
             txt_input_password_login.requestFocus();
         }else{
-            mAuth.signInWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+            mAuth.signInWithEmailAndPassword(email, password)
+                    .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                 @Override
                 public void onComplete(@NonNull Task<AuthResult> task) {
                     if(task.isSuccessful()){
-                        startActivity(new Intent(LoginActivity.this, MainActivity.class));
+                        startActivity(new Intent(
+                                LoginActivity.this, MainActivity.class));
                     }else{
-                        Toast.makeText(LoginActivity.this,"Login failed - Error: "+task.getException().getMessage(),Toast.LENGTH_LONG).show();
+                        Toast.makeText(
+                                LoginActivity.this,"Login failed - Error: "+task
+                                        .getException().getMessage(),Toast.LENGTH_LONG).show();
                     }
                 }
             });
-
         }
     }
 

@@ -10,7 +10,13 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -24,10 +30,14 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -53,11 +63,14 @@ import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.DirectionsRoute;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
 import static com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_AZURE;
+import static com.google.android.gms.maps.model.BitmapDescriptorFactory.fromBitmap;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         , GoogleMap.OnMarkerClickListener, GoogleMap.OnMapLongClickListener
@@ -66,18 +79,46 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     TextView txt_route_info;
     EditText input_search;
+    Button btn_start_nav, btn_stop_nav;
 
     private GoogleMap mMap;
     private ActivityMapsBinding binding;
 
     private static final int PERMISSION_FINE_LOCATION = 99;
+    // How often the location check occur (Milliseconds)
+    public static final int UPDATE_INTERVAL = 1;
+    // How often the location check occur when maximum power is used (Seconds)
+    public static final int UPDATE_FASTEST_INTERVAL = 1;
+
+    //Config file for FusedLocationProviderClient
+    LocationRequest locationRequest;
 
     //Google API for GPS location services
     FusedLocationProviderClient fusedLocationProviderClient;
 
+    LocationCallback locationCallback;
+
+    //Define sensor manager and accelerometer
+    SensorManager mSensorManager;
+    Sensor mAccelerometer;
+    Sensor mGyroScope;
+
+    //Variables to store collected GPS data
+    double latitude, longitude, altitude;
+
+    //Variables to store accelerometer data
+    float accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z;
+    //Temporary
+    TextView txt_accel_x, txt_accel_y, txt_accel_z, txt_lat, txt_lon, txt_alt, txt_accuracy,
+            txt_speed, txt_bearing, txt_gyro_x, txt_gyro_y, txt_gyro_z;
+
+
+
     //User Location
     private Location userLocation;
     private LatLng userLatLng;
+
+
 
     //Speed Bumps Markers
     ArrayList<LatLng> speedBumpsList = new ArrayList<>();
@@ -102,6 +143,56 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     ArrayList<LatLng> markersPositionsList = new ArrayList<>();
     ArrayList<Marker> markersList = new ArrayList<>();
     ArrayList<Marker> destinationMarkersList = new ArrayList<>();
+
+    ArrayList<SensorsData> datasetSamples = new ArrayList<>();
+
+
+
+
+    private SensorEventListener sensorEventListenerAcc = new SensorEventListener() {
+
+        @Override
+        public void onSensorChanged(SensorEvent sensorEvent) {
+
+            accel_x = sensorEvent.values[0];
+            accel_y = sensorEvent.values[1];
+            accel_z = sensorEvent.values[2];
+
+            txt_accel_x.setText(String.format("X: %s", accel_x));
+            txt_accel_y.setText(String.format("Y: %s", accel_y));
+            txt_accel_z.setText(String.format("Z: %s", accel_z));
+
+
+
+            datasetSamples.add(storeSensorsData());
+
+
+            //databaseManager.addOne(storeSensorsData());
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int i) {
+
+        }
+    };
+
+    private SensorEventListener sensorEventListenerGyro = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent sensorEvent) {
+            gyro_x = sensorEvent.values[0];
+            gyro_y = sensorEvent.values[1];
+            gyro_z = sensorEvent.values[2];
+
+            txt_gyro_x.setText(String.format("X: %s", gyro_x));
+            txt_gyro_y.setText(String.format("Y: %s", gyro_y));
+            txt_gyro_z.setText(String.format("Z: %s", gyro_z));
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int i) {
+
+        }
+    };
 
 
     
@@ -129,6 +220,41 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         txt_route_info = findViewById(R.id.txt_route_info);
         input_search = findViewById(R.id.input_search);
+        btn_start_nav = findViewById(R.id.btn_start_nav);
+        btn_stop_nav = findViewById(R.id.btn_stop_nav);
+
+        // Initialize sensor manager and accelerometer
+        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        mGyroScope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+
+        txt_accel_x = findViewById(R.id.txt_accel_x);
+        txt_accel_y = findViewById(R.id.txt_accel_y);
+        txt_accel_z = findViewById(R.id.txt_accel_z);
+
+        txt_lat = findViewById(R.id.txt_lat);
+        txt_lon = findViewById(R.id.txt_lon);
+        txt_alt = findViewById(R.id.txt_alt);
+
+        txt_gyro_x = findViewById(R.id.txt_gyro_x);
+        txt_gyro_y = findViewById(R.id.txt_gyro_y);
+        txt_gyro_z = findViewById(R.id.txt_gyro_z);
+
+        // Set LocationRequest's properties
+        locationRequest = new LocationRequest();
+        locationRequest.setInterval(10 * UPDATE_INTERVAL);
+        locationRequest.setFastestInterval(1000 * UPDATE_FASTEST_INTERVAL);
+        locationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+
+        // Event triggered when the update interval is met
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+                updateLocationValues(locationResult.getLastLocation());
+            }
+        };
+
 
     }
 
@@ -158,31 +284,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 return false;
             }
         });
+
         getSpeedBumpsLocation();
 
         //Add speed bumps locations
         for(int i=0; i<speedBumpsList.size();i++){
-            speedBumpMarkerOptions = new MarkerOptions().position(speedBumpsList.get(i)).title("Speed Bump");
+            speedBumpMarkerOptions = new MarkerOptions()
+                    .position(speedBumpsList.get(i))
+                    .title("Speed Bump");
             speedBumpMarkerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.speed_bump));
             mMap.addMarker(speedBumpMarkerOptions);
         }
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             enableLocation();
-
-
         } else {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_FINE_LOCATION);
             }
         }
-
         mMap.setOnMapClickListener(this);
         mMap.setOnMarkerClickListener(this);
         mMap.setOnMapLongClickListener(this);
         mMap.setOnPolylineClickListener(this);
         mMap.setOnInfoWindowClickListener(this);
-
         if(geoApiContext == null){
             geoApiContext = new GeoApiContext.Builder()
                     .apiKey(getString(R.string.google_maps_key))
@@ -235,8 +360,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 userLocation = location;
                 userLatLng = new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 16));
-                //getLocationName(location);
-
             }
         });
 
@@ -275,12 +398,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void calculateDirections(Marker marker){
-
-
-
-
-
-        com.google.maps.model.LatLng dest = new com.google.maps.model.LatLng(marker.getPosition().latitude, marker.getPosition().longitude);
+        com.google.maps.model.LatLng dest = new com.google.maps.model.LatLng(
+                marker.getPosition().latitude, marker.getPosition().longitude);
         DirectionsApiRequest routes = new DirectionsApiRequest(geoApiContext);
         routes.alternatives(true);
         routes.origin(String.valueOf(userLatLng));
@@ -290,27 +409,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         userLatLng.longitude
                 )
         );
-        routes.destination(String.valueOf(dest)).setCallback(new PendingResult.Callback<DirectionsResult>() {
+        routes.destination(String.valueOf(dest)).setCallback(
+                new PendingResult.Callback<DirectionsResult>() {
             @Override
             public void onResult(DirectionsResult result) {
                 String routeDetails = "";
-                Log.d("Routes", "onResult: routes: " + result.routes[0].toString());
-                Log.d("Routes", "onResult: duration: " + result.routes[0].legs[0].duration);
-                Log.d("Routes", "onResult: distance: " + result.routes[0].legs[0].distance);
-                Log.d("Routes", "onResult: geocodedWayPoints: " + result.geocodedWaypoints[0].toString());
-
-
-                //routeDetails += result.routes[0].toString();
                 routeDetails += result.routes[0].legs[0].duration;
                 routeDetails += result.routes[0].legs[0].distance;
                 routeDetails += result.geocodedWaypoints[0].toString();
-
                 txt_route_info.setText(routeDetails);
-
                 addRoutesToMap(result);
-
             }
-
             @Override
             public void onFailure(Throwable e) {
                 Log.e("Routes", "onFailure: " + e.getMessage() );
@@ -353,6 +462,32 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     polyline.setColor(ContextCompat.getColor(MapsActivity.this, R.color.darkGrey));
                     polyline.setClickable(true);
                     polylineDataList.add(new PolylineData(polyline, route.legs[0],speedBumpNumber));
+                    btn_start_nav.setVisibility(View.VISIBLE);
+                    btn_start_nav.setBackgroundColor(Color.BLUE);
+                    btn_start_nav.setTextColor(Color.WHITE);
+
+                    btn_start_nav.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            startLocationUpdate();
+                            mSensorManager.registerListener(sensorEventListenerAcc, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+                            mSensorManager.registerListener(sensorEventListenerGyro, mGyroScope, SensorManager.SENSOR_DELAY_NORMAL);
+                            btn_start_nav.setVisibility(View.INVISIBLE);
+                            btn_stop_nav.setVisibility(View.VISIBLE);
+                            btn_stop_nav.setBackgroundColor(Color.BLUE);
+                            btn_stop_nav.setTextColor(Color.WHITE);
+                        }
+                    });
+
+                    btn_stop_nav.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            stopLocationUpdate();
+                            mSensorManager.unregisterListener(sensorEventListenerAcc);
+                            mSensorManager.unregisterListener(sensorEventListenerGyro);
+                            btn_stop_nav.setVisibility(View.INVISIBLE);
+                        }
+                    });
 
                     double mDuration = route.legs[0].duration.inSeconds;
                     if(mDuration < duration){
@@ -373,6 +508,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
+    private void startLocationUpdate() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
+            updateGPS();
+            return;
+        }
+
+    }
+
+    private void stopLocationUpdate() {
+
+        fusedLocationProviderClient.removeLocationUpdates(locationCallback);
+    }
     private void getSpeedBumpsLocation(){
         speedBumpsList.add(speedBump1);
         speedBumpsList.add(speedBump2);
@@ -383,16 +531,67 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         speedBumpsListRounded.add(speedBumpR3);
     }
 
+    private void updateGPS() {
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MapsActivity.this);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationProviderClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                @Override
+                public void onSuccess(Location location) {
+                    updateLocationValues(location);
+                }
+            });
+
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_FINE_LOCATION);
+            }
+        }
+    }
+
+
+
+    public SensorsData storeSensorsData() {
+
+        SensorsData sensorsData = new SensorsData();
+
+        Date date = new Date();
+        SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+
+        sensorsData.setAccel_x(accel_x);
+        sensorsData.setAccel_y(accel_y);
+        sensorsData.setAccel_z(accel_z);
+        sensorsData.setGyro_x(gyro_x);
+        sensorsData.setGyro_y(gyro_y);
+        sensorsData.setGyro_z(gyro_z);
+        sensorsData.setLat(latitude);
+        sensorsData.setLon(longitude);
+        sensorsData.setAlt(altitude);
+        sensorsData.setDate(formatter.format(date));
+
+        return sensorsData;
+    }
+
+    public void updateLocationValues(Location location) {
+        latitude = location.getLatitude();
+        longitude = location.getLongitude();
+        altitude = location.getAltitude();
+
+        txt_lat.setText("Latitude: " + String.valueOf(location.getLatitude()));
+        txt_lon.setText("Longitude: " + String.valueOf(location.getLongitude()));
+        txt_accuracy.setText("Accuracy: " + String.valueOf(location.getAccuracy()));
+
+    }
+
+
+
+
 
     @Override
     public boolean onMarkerClick(@NonNull Marker marker) {
-        //Toast.makeText(this, marker.getTitle(),Toast.LENGTH_LONG).show();
         Location markerLocation = new Location("Marker");
         markerLocation.setLatitude(marker.getPosition().latitude);
         markerLocation.setLongitude(marker.getPosition().longitude);
         marker.setTitle(getLocationName(markerLocation));
-
-
         return false;
     }
 
@@ -415,44 +614,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 polylineData.getPolyline().setColor(
                         ContextCompat.getColor(MapsActivity.this,R.color.blue));
                 polylineData.getPolyline().setZIndex(1);
-                /*LatLng destLocation = new LatLng(
-                        polylineData.getDirectionsLeg().endLocation.lat,
-                        polylineData.getDirectionsLeg().endLocation.lng
-                );*/
-
-                /*if(destinationMarkersList.size() > 1){
-                    destinationMarkersList.get(0).remove();
-                    destinationMarkersList.clear();
-                }
-
-                Marker destMarker = mMap.addMarker(new MarkerOptions()
-                        .position(destLocation)
-                        .title("trip: "+routeNumber)
-                        .snippet("Duration: "+ polylineData.getDirectionsLeg().duration)
-
-                );
-
-                destinationMarkersList.add(destMarker);*/
-
                 txt_route_info.setText("Duration: "+ polylineData.getDirectionsLeg().duration +
                         " Distance: "+ polylineData.getDirectionsLeg().distance +
                         " Duration in Traffic: "+ polylineData.getDirectionsLeg()
                         .durationInTraffic + " Speed Bumps: "+polylineData.getSpeedBumpNumber()+
                         " Trip: "+routeNumber);
-
-//                destMarker.showInfoWindow();
-
             }else{
                 polylineData.getPolyline().setColor(
                         ContextCompat.getColor(MapsActivity.this,R.color.darkGrey));
                 polylineData.getPolyline().setZIndex(0);
-
             }
         }
-
-
-
     }
+
     private void hideInputKeyboard(){
         View view = this.getCurrentFocus();
         if(view != null){
@@ -472,7 +646,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             markersList.get(0).remove();
             markersPositionsList.clear();
             markersList.clear();
-
+            txt_route_info.setText("");
         }
         if(polylineDataList.size() > 0){
             for(PolylineData polylineData: polylineDataList){
@@ -480,22 +654,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
             polylineDataList.clear();
         }
-
         Location location = new Location("On map click marker");
         location.setLatitude(latLng.latitude);
         location.setLongitude(latLng.longitude);
 
         markersPositionsList.add(latLng);
-
         MarkerOptions targetMarkerOptions = new MarkerOptions()
                 .position(markersPositionsList.get(0))
                 .title(getLocationName(location)).snippet("Draw Routes?");
-
         targetMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(HUE_AZURE));
         Marker onMapClickMarker =  mMap.addMarker(targetMarkerOptions);
         markersList.add(onMapClickMarker);
-
-
     }
 
     @Override
@@ -513,19 +682,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     public void onClick(DialogInterface dialogInterface, int i) {
                         dialogInterface.cancel();
                         calculateDirections(marker);
-
-
                     }
                 })
                 .setNegativeButton("No", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
                         dialogInterface.cancel();
-
                     }
                 })
                 .create()
                 .show();
-
     }
 }
