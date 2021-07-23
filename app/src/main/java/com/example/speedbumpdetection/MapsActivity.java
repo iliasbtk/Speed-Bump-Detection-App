@@ -146,6 +146,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     ArrayList<SensorsData> datasetSamples = new ArrayList<>();
 
+    DatabaseManager databaseManager =new DatabaseManager(MapsActivity.this);
+
 
 
 
@@ -162,12 +164,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             txt_accel_y.setText(String.format("Y: %s", accel_y));
             txt_accel_z.setText(String.format("Z: %s", accel_z));
 
-
-
-            datasetSamples.add(storeSensorsData());
-
-
-            //databaseManager.addOne(storeSensorsData());
+            databaseManager.addOne(storeSensorsData());
         }
 
         @Override
@@ -554,9 +551,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         SensorsData sensorsData = new SensorsData();
 
-        Date date = new Date();
-        SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
-
         sensorsData.setAccel_x(accel_x);
         sensorsData.setAccel_y(accel_y);
         sensorsData.setAccel_z(accel_z);
@@ -566,8 +560,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         sensorsData.setLat(latitude);
         sensorsData.setLon(longitude);
         sensorsData.setAlt(altitude);
-        sensorsData.setDate(formatter.format(date));
-
         return sensorsData;
     }
 
@@ -576,9 +568,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         longitude = location.getLongitude();
         altitude = location.getAltitude();
 
-        txt_lat.setText("Latitude: " + String.valueOf(location.getLatitude()));
-        txt_lon.setText("Longitude: " + String.valueOf(location.getLongitude()));
-        txt_accuracy.setText("Accuracy: " + String.valueOf(location.getAccuracy()));
+        txt_lat.setText("Latitude: " + String.valueOf(latitude));
+        txt_lon.setText("Longitude: " + String.valueOf(longitude));
+        txt_alt.setText("Altitude: " + String.valueOf(altitude));
 
     }
 

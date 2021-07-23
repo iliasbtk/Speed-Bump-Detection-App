@@ -4,13 +4,8 @@ public class SensorsData {
     private float accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z;
     double lat, lon, alt;
     private int id;
-    String date;
 
     public SensorsData() {
-    }
-
-    public void setDate(String date){
-        this.date = date;
     }
 
     public void setAccel_x(float accel_x) {
@@ -51,10 +46,6 @@ public class SensorsData {
 
     public void setId(int id) {
         this.id = id;
-    }
-
-    public String getDate(){
-        return date;
     }
 
     public float getAccel_x() {
