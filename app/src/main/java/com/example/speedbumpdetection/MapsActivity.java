@@ -108,11 +108,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     //Variables to store accelerometer data
     float accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z;
-    //Temporary
-    TextView txt_accel_x, txt_accel_y, txt_accel_z, txt_lat, txt_lon, txt_alt, txt_accuracy,
-            txt_speed, txt_bearing, txt_gyro_x, txt_gyro_y, txt_gyro_z;
-
-
 
     //User Location
     private Location userLocation;
@@ -160,10 +155,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             accel_y = sensorEvent.values[1];
             accel_z = sensorEvent.values[2];
 
-            txt_accel_x.setText(String.format("X: %s", accel_x));
-            txt_accel_y.setText(String.format("Y: %s", accel_y));
-            txt_accel_z.setText(String.format("Z: %s", accel_z));
-
             databaseManager.addOne(storeSensorsData());
         }
 
@@ -180,9 +171,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             gyro_y = sensorEvent.values[1];
             gyro_z = sensorEvent.values[2];
 
-            txt_gyro_x.setText(String.format("X: %s", gyro_x));
-            txt_gyro_y.setText(String.format("Y: %s", gyro_y));
-            txt_gyro_z.setText(String.format("Z: %s", gyro_z));
         }
 
         @Override
@@ -224,18 +212,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mGyroScope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-
-        txt_accel_x = findViewById(R.id.txt_accel_x);
-        txt_accel_y = findViewById(R.id.txt_accel_y);
-        txt_accel_z = findViewById(R.id.txt_accel_z);
-
-        txt_lat = findViewById(R.id.txt_lat);
-        txt_lon = findViewById(R.id.txt_lon);
-        txt_alt = findViewById(R.id.txt_alt);
-
-        txt_gyro_x = findViewById(R.id.txt_gyro_x);
-        txt_gyro_y = findViewById(R.id.txt_gyro_y);
-        txt_gyro_z = findViewById(R.id.txt_gyro_z);
 
         // Set LocationRequest's properties
         locationRequest = new LocationRequest();
@@ -567,11 +543,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         latitude = location.getLatitude();
         longitude = location.getLongitude();
         altitude = location.getAltitude();
-
-        txt_lat.setText("Latitude: " + String.valueOf(latitude));
-        txt_lon.setText("Longitude: " + String.valueOf(longitude));
-        txt_alt.setText("Altitude: " + String.valueOf(altitude));
-
     }
 
 
