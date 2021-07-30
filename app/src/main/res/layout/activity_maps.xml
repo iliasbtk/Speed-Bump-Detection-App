@@ -49,23 +49,6 @@
         app:layout_constraintHeight_percent="0.85"
         map:layout_constraintBottom_toTopOf="@+id/txt_route_info" />
 
-    <Button
-        android:id="@+id/btn_start_nav"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        map:layout_constraintBottom_toBottomOf="@+id/map"
-        android:text="Start Navigation"
-        android:visibility="invisible"
-        />
-    <Button
-        android:id="@+id/btn_stop_nav"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        map:layout_constraintBottom_toBottomOf="@+id/map"
-        android:text="Stop Navigation"
-        android:visibility="invisible"
-        />
-
     <TextView
         android:id="@+id/txt_route_info"
         android:layout_width="match_parent"

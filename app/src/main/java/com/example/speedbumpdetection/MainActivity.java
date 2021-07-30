@@ -67,6 +67,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 mAuth.signOut();
                 startActivity(new Intent(this,LoginActivity.class));
                 break;
+
+
         }
         drawer.closeDrawer(GravityCompat.START);
         return true;
@@ -87,13 +89,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     protected void onStart() {
         super.onStart();
-        FirebaseUser currentUser = mAuth.getCurrentUser();
+        /*FirebaseUser currentUser = mAuth.getCurrentUser();
         if(currentUser != null) {
 
             Toast.makeText(this,"User: "+currentUser.getEmail()+ "connected",Toast.LENGTH_LONG);
 
         }else{
             startActivity(new Intent(this, LoginActivity.class));
-        }
+        }*/
     }
 }
