@@ -40,10 +40,18 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.speedbumpdetection.databinding.ActivityMapsBinding;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.analytics.FirebaseAnalytics;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.model.Document;
 import com.google.maps.DirectionsApi;
 import com.google.maps.DirectionsApiRequest;
 import com.google.maps.GeoApiContext;
@@ -52,10 +60,15 @@ import com.google.maps.internal.PolylineEncoding;
 import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.DirectionsRoute;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_AZURE;
 
@@ -79,17 +92,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Location userLocation;
     private LatLng userLatLng;
 
+
+    //
+    FirebaseFirestore speedBumpsDB;
+
+    //
+    ArrayList<SpeedBump> sbList = new ArrayList<>();
+
+
     //Speed Bumps Markers
+    private Double lat;
+    private Double lon;
     ArrayList<LatLng> speedBumpsList = new ArrayList<>();
-    LatLng speedBump1 = new LatLng(35.7296019, -0.5876281);
-    LatLng speedBump2 = new LatLng(35.7302622, -0.5876606);
-    LatLng speedBump3 = new LatLng(35.7291512, -0.5856882);
+
+
     MarkerOptions speedBumpMarkerOptions;
 
-    ArrayList<LatLng> speedBumpsListRounded = new ArrayList<>();
-    LatLng speedBumpR1 = new LatLng(35.7296, -0.5876);
-    LatLng speedBumpR2 = new LatLng(35.7303, -0.5877);
-    LatLng speedBumpR3 = new LatLng(35.7291, -0.5857);
+
 
 
     Geocoder geocoder;
@@ -102,6 +121,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     ArrayList<LatLng> markersPositionsList = new ArrayList<>();
     ArrayList<Marker> markersList = new ArrayList<>();
     ArrayList<Marker> destinationMarkersList = new ArrayList<>();
+
+
 
 
     
@@ -129,6 +150,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         txt_route_info = findViewById(R.id.txt_route_info);
         input_search = findViewById(R.id.input_search);
+
+
+
+
 
     }
 
@@ -158,14 +183,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 return false;
             }
         });
-        getSpeedBumpsLocation();
 
-        //Add speed bumps locations
-        for(int i=0; i<speedBumpsList.size();i++){
-            speedBumpMarkerOptions = new MarkerOptions().position(speedBumpsList.get(i)).title("Speed Bump");
-            speedBumpMarkerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.speed_bump));
-            mMap.addMarker(speedBumpMarkerOptions);
-        }
+        speedBumpsDB = FirebaseFirestore.getInstance();
+
+        //saveSpeedBumpsLocations();
+        getSpeedBumpsLocations();
+
+
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             enableLocation();
@@ -188,6 +212,52 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .apiKey(getString(R.string.google_maps_key))
                     .build();
         }
+    }
+
+    private void saveSpeedBumpsLocations(){
+        CollectionReference collectionReference = speedBumpsDB.collection("SpeedBumps");
+        List<SpeedBump> uploadList = new ArrayList<>();
+        InputStream is = getResources().openRawResource(R.raw.data);
+        BufferedReader bufferedReader = new BufferedReader(
+                new InputStreamReader(is)
+        );
+
+        String line;
+
+        try {
+            while (( line = bufferedReader.readLine()) != null){
+                String[] tokens = line.split(",");
+                SpeedBump sb = new SpeedBump(Double.parseDouble(tokens[0]), Double.parseDouble(tokens[1]));
+                uploadList.add(sb);
+                collectionReference.add(sb);
+                txt_route_info.setText("size "+uploadList.size());
+
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void getSpeedBumpsLocations(){
+        speedBumpsDB.collection("SpeedBumps").get()
+                .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+                    @Override
+                    public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
+                        if(!queryDocumentSnapshots.isEmpty()){
+                            for(DocumentSnapshot d: queryDocumentSnapshots.getDocuments()){
+                                SpeedBump sb = d.toObject(SpeedBump.class);
+                                speedBumpsList.add(new LatLng(sb.getLat(), sb.getLon()));
+                            }
+                            //Add speed bumps locations to the map
+                            for(int i=0; i<speedBumpsList.size();i++){
+                                speedBumpMarkerOptions = new MarkerOptions().position(speedBumpsList.get(i)).title("Speed Bump");
+                                speedBumpMarkerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.speed_bump));
+                                mMap.addMarker(speedBumpMarkerOptions);
+                            }
+                        }
+                    }
+                });
+
     }
 
     private void findGeoLocation() {
@@ -337,22 +407,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     List<com.google.maps.model.LatLng> decodeRoute = PolylineEncoding
                             .decode(route.overviewPolyline.getEncodedPath());
                     List<LatLng> newDecodeRoute = new ArrayList<>();
-                    int speedBumpNumber =0;
+
                     for(com.google.maps.model.LatLng latLng: decodeRoute){
                         newDecodeRoute.add(new LatLng(latLng.lat, latLng.lng));
-                        if(speedBumpsList.contains(new LatLng(latLng.lat, latLng.lng))){
-                            speedBumpNumber++;
-                        }
-                        if(speedBumpsListRounded.contains(new LatLng(roundNumber(latLng.lat),roundNumber(latLng.lng)))){
-                            speedBumpNumber++;
-                        }
-
                     }
                     Polyline polyline = mMap.addPolyline(new PolylineOptions().addAll(newDecodeRoute));
 
                     polyline.setColor(ContextCompat.getColor(MapsActivity.this, R.color.darkGrey));
                     polyline.setClickable(true);
-                    polylineDataList.add(new PolylineData(polyline, route.legs[0],speedBumpNumber));
+                    polylineDataList.add(new PolylineData(polyline, route.legs[0]));
 
                     double mDuration = route.legs[0].duration.inSeconds;
                     if(mDuration < duration){
@@ -373,15 +436,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
-    private void getSpeedBumpsLocation(){
-        speedBumpsList.add(speedBump1);
-        speedBumpsList.add(speedBump2);
-        speedBumpsList.add(speedBump3);
-
-        speedBumpsListRounded.add(speedBumpR1);
-        speedBumpsListRounded.add(speedBumpR2);
-        speedBumpsListRounded.add(speedBumpR3);
-    }
 
 
     @Override
@@ -437,8 +491,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 txt_route_info.setText("Duration: "+ polylineData.getDirectionsLeg().duration +
                         " Distance: "+ polylineData.getDirectionsLeg().distance +
                         " Duration in Traffic: "+ polylineData.getDirectionsLeg()
-                        .durationInTraffic + " Speed Bumps: "+polylineData.getSpeedBumpNumber()+
-                        " Trip: "+routeNumber);
+                        .durationInTraffic + " Trip: "+routeNumber);
 
 //                destMarker.showInfoWindow();
 
@@ -461,10 +514,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
         }
     }
-    private double roundNumber(double n){
-        return (double)Math.round(n * 10000d) / 10000d;
-    }
-
 
     @Override
     public void onMapClick(@NonNull LatLng latLng) {
@@ -472,6 +521,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             markersList.get(0).remove();
             markersPositionsList.clear();
             markersList.clear();
+            txt_route_info.setText("");
 
         }
         if(polylineDataList.size() > 0){

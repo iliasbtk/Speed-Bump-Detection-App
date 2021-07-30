@@ -32,10 +32,9 @@ public class PolylineData {
         this.directionsLeg = directionsLeg;
     }
 
-    public PolylineData(Polyline polyline, DirectionsLeg directionsLeg, int speedBumpNumber){
+    public PolylineData(Polyline polyline, DirectionsLeg directionsLeg){
         this.polyline = polyline;
         this.directionsLeg = directionsLeg;
-        this.speedBumpNumber = speedBumpNumber;
     }
 
     @Override
