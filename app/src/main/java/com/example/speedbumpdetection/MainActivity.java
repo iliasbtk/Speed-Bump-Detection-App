@@ -11,6 +11,9 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.material.navigation.NavigationView;
@@ -25,6 +28,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     Toolbar toolbar;
     private DrawerLayout drawer;
     NavigationView navigationView;
+    private Button btn_go_to_map;
     Intent i;
 
     @Override
@@ -37,6 +41,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         drawer = findViewById(R.id.layout_drawer);
 
+        btn_go_to_map = findViewById(R.id.btn_go_to_map);
+
+
         navigationView = findViewById(R.id.view_nav);
         navigationView.setNavigationItemSelectedListener(this);
 
@@ -48,6 +55,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         // Initialize Authentication variables
         mAuth = FirebaseAuth.getInstance();
+
+        btn_go_to_map.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                i = new Intent(MainActivity.this, MapsActivity.class);
+                startActivity(i);
+            }
+        });
 
 
     }
@@ -89,13 +104,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     protected void onStart() {
         super.onStart();
-        /*FirebaseUser currentUser = mAuth.getCurrentUser();
+        FirebaseUser currentUser = mAuth.getCurrentUser();
         if(currentUser != null) {
 
             Toast.makeText(this,"User: "+currentUser.getEmail()+ "connected",Toast.LENGTH_LONG);
 
         }else{
             startActivity(new Intent(this, LoginActivity.class));
-        }*/
+        }
     }
 }

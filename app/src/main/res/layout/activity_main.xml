@@ -29,7 +29,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             tools:layout_editor_absoluteX="0dp"
-            tools:layout_editor_absoluteY="0dp">
+            tools:layout_editor_absoluteY="42dp">
 
 
         </FrameLayout>
@@ -46,56 +46,18 @@
             app:layout_constraintTop_toBottomOf="@+id/toolbar"
             android:layout_marginLeft="10dp"/>
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/txt_input_src_location"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:layout_constraintTop_toBottomOf="@+id/txt_title"
-            android:layout_marginTop="5dp"
-            android:layout_marginLeft="10dp"
-            android:layout_marginRight="10dp">
 
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Source Location"
-                android:inputType="text"
-                android:background="@color/white"/>
-
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/txt_input_dest_location"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:layout_constraintTop_toBottomOf="@+id/txt_input_src_location"
-            android:layout_marginTop="5dp"
-            android:layout_marginLeft="10dp"
-            android:layout_marginRight="10dp">
-
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Destination"
-                android:inputType="text"
-                android:background="@color/white"/>
-
-
-        </com.google.android.material.textfield.TextInputLayout>
 
         <Button
-            android:id="@+id/btn_start"
+            android:id="@+id/btn_go_to_map"
             android:layout_width="wrap_content"
             android:layout_height="0dp"
-            android:text="Calculate"
-            android:layout_marginTop="20dp"
-            android:layout_marginLeft="10dp"
+            android:text="Go To the Map"
+            app:layout_constraintBottom_toBottomOf="@+id/fragment_container"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHeight_percent="0.1"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/txt_input_dest_location" />
+            />
 
 
         
