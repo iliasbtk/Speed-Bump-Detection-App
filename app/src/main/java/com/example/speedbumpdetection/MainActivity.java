@@ -43,7 +43,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         btn_go_to_map = findViewById(R.id.btn_go_to_map);
 
-
         navigationView = findViewById(R.id.view_nav);
         navigationView.setNavigationItemSelectedListener(this);
 
@@ -63,8 +62,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 startActivity(i);
             }
         });
-
-
     }
 
     @Override
@@ -82,8 +79,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 mAuth.signOut();
                 startActivity(new Intent(this,LoginActivity.class));
                 break;
-
-
         }
         drawer.closeDrawer(GravityCompat.START);
         return true;
@@ -96,9 +91,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             drawer.closeDrawer(GravityCompat.START);
         }else{
             super.onBackPressed();
-
         }
-
     }
 
     @Override
@@ -106,9 +99,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onStart();
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if(currentUser != null) {
-
             Toast.makeText(this,"User: "+currentUser.getEmail()+ "connected",Toast.LENGTH_LONG);
-
         }else{
             startActivity(new Intent(this, LoginActivity.class));
         }

@@ -13,8 +13,6 @@ public class SpeedBump {
         return lon;
     }
 
-
-
     public void setLat(double lat) {
         this.lat = lat;
     }
@@ -29,6 +27,5 @@ public class SpeedBump {
     }
 
     public SpeedBump(){
-
     };
 }

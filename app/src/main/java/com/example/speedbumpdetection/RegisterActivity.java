@@ -66,14 +66,20 @@ public class RegisterActivity extends AppCompatActivity {
             txt_input_password_reg.setError(("Please enter a password"));
             txt_input_password_reg.requestFocus();
         }else{
-            mAuth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+            mAuth.createUserWithEmailAndPassword(email, password)
+                    .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                 @Override
                 public void onComplete(@NonNull Task<AuthResult> task) {
                     if(task.isSuccessful()){
-                        Toast.makeText(RegisterActivity.this,"User Registered successfully",Toast.LENGTH_LONG).show();
-                        startActivity(new Intent(RegisterActivity.this, LoginActivity.class));
+                        Toast.makeText
+                                (RegisterActivity.this,"User Registered successfully"
+                                        ,Toast.LENGTH_LONG).show();
+                        startActivity(new Intent(RegisterActivity.this
+                                , LoginActivity.class));
                     }else{
-                        Toast.makeText(RegisterActivity.this,"Registration failed - Error: "+task.getException().getMessage(),Toast.LENGTH_LONG).show();
+                        Toast.makeText(RegisterActivity.this
+                                ,"Registration failed - Error: "+task.getException().getMessage()
+                                ,Toast.LENGTH_LONG).show();
                     }
                 }
             });

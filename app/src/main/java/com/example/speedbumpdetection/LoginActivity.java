@@ -24,7 +24,6 @@ public class LoginActivity extends AppCompatActivity {
     //Authentication variables
     private FirebaseAuth mAuth;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -39,7 +38,6 @@ public class LoginActivity extends AppCompatActivity {
 
         // Initialize Authentication variables
         mAuth = FirebaseAuth.getInstance();
-
 
         btn_go_to_register.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -56,29 +54,29 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    private void login(){
+    private void login() {
         String email = txt_input_email_login.getText().toString();
         String password = txt_input_password_login.getText().toString();
-        if(TextUtils.isEmpty(email)){
+        if (TextUtils.isEmpty(email)) {
             txt_input_email_login.setError("Please enter an email address");
             txt_input_email_login.requestFocus();
-        }else if(TextUtils.isEmpty(password)){
+        } else if (TextUtils.isEmpty(password)) {
             txt_input_password_login.setError(("Please enter a password"));
             txt_input_password_login.requestFocus();
-        }else{
-            mAuth.signInWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                @Override
-                public void onComplete(@NonNull Task<AuthResult> task) {
-                    if(task.isSuccessful()){
-                        startActivity(new Intent(LoginActivity.this, MainActivity.class));
-                    }else{
-                        Toast.makeText(LoginActivity.this,"Login failed - Error: "+task.getException().getMessage(),Toast.LENGTH_LONG).show();
-                    }
-                }
-            });
-
+        } else {
+            mAuth.signInWithEmailAndPassword(email, password)
+                    .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                        @Override
+                        public void onComplete(@NonNull Task<AuthResult> task) {
+                            if (task.isSuccessful()) {
+                                startActivity(new Intent(LoginActivity.this, MainActivity.class));
+                            } else {
+                                Toast.makeText(LoginActivity.this
+                                        , "Login failed - Error: " + task.getException().getMessage()
+                                        , Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    });
         }
     }
-
-
 }

@@ -6,18 +6,9 @@ import com.google.maps.model.DirectionsLeg;
 public class PolylineData {
     private Polyline polyline;
     private DirectionsLeg directionsLeg;
-    private int speedBumpNumber;
 
     public Polyline getPolyline() {
         return polyline;
-    }
-
-    public int getSpeedBumpNumber() {
-        return speedBumpNumber;
-    }
-
-    public void setSpeedBumpNumber(int speedBumpNumber) {
-        this.speedBumpNumber = speedBumpNumber;
     }
 
     public DirectionsLeg getDirectionsLeg() {

@@ -73,8 +73,7 @@ import java.util.Map;
 import static com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_AZURE;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
-        , GoogleMap.OnMarkerClickListener, GoogleMap.OnMapLongClickListener
-        , GoogleMap.OnPolylineClickListener, GoogleMap.OnMapClickListener
+        , GoogleMap.OnMarkerClickListener, GoogleMap.OnPolylineClickListener, GoogleMap.OnMapClickListener
         , GoogleMap.OnInfoWindowClickListener{
 
     TextView txt_route_info;
@@ -92,47 +91,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Location userLocation;
     private LatLng userLatLng;
 
-
-    //
+    //Firestore database
     FirebaseFirestore speedBumpsDB;
 
-    //
-    ArrayList<SpeedBump> sbList = new ArrayList<>();
-
-
     //Speed Bumps Markers
-    private Double lat;
-    private Double lon;
     ArrayList<LatLng> speedBumpsList = new ArrayList<>();
-
-
     MarkerOptions speedBumpMarkerOptions;
-
-
-
 
     Geocoder geocoder;
 
     //Directions
     GeoApiContext geoApiContext = null;
-
     ArrayList<PolylineData> polylineDataList = new ArrayList<>();
 
     ArrayList<LatLng> markersPositionsList = new ArrayList<>();
     ArrayList<Marker> markersList = new ArrayList<>();
-    ArrayList<Marker> destinationMarkersList = new ArrayList<>();
-
-
-
-
-    
-
-
-
-
-
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -150,26 +123,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         txt_route_info = findViewById(R.id.txt_route_info);
         input_search = findViewById(R.id.input_search);
-
-
-
-
-
     }
 
-
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+
+        //Geo location search
         input_search.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
@@ -183,18 +143,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 return false;
             }
         });
-
         speedBumpsDB = FirebaseFirestore.getInstance();
 
-        //saveSpeedBumpsLocations();
+        //Get and display the speed bumps locations
         getSpeedBumpsLocations();
 
-
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission
+                (this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             enableLocation();
-
-
         } else {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_FINE_LOCATION);
@@ -203,7 +159,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mMap.setOnMapClickListener(this);
         mMap.setOnMarkerClickListener(this);
-        mMap.setOnMapLongClickListener(this);
         mMap.setOnPolylineClickListener(this);
         mMap.setOnInfoWindowClickListener(this);
 
@@ -214,30 +169,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private void saveSpeedBumpsLocations(){
-        CollectionReference collectionReference = speedBumpsDB.collection("SpeedBumps");
-        List<SpeedBump> uploadList = new ArrayList<>();
-        InputStream is = getResources().openRawResource(R.raw.data);
-        BufferedReader bufferedReader = new BufferedReader(
-                new InputStreamReader(is)
-        );
-
-        String line;
-
-        try {
-            while (( line = bufferedReader.readLine()) != null){
-                String[] tokens = line.split(",");
-                SpeedBump sb = new SpeedBump(Double.parseDouble(tokens[0]), Double.parseDouble(tokens[1]));
-                uploadList.add(sb);
-                collectionReference.add(sb);
-                txt_route_info.setText("size "+uploadList.size());
-
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
+    //Get and display the speed bumps locations
     private void getSpeedBumpsLocations(){
         speedBumpsDB.collection("SpeedBumps").get()
                 .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
@@ -250,14 +182,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             }
                             //Add speed bumps locations to the map
                             for(int i=0; i<speedBumpsList.size();i++){
-                                speedBumpMarkerOptions = new MarkerOptions().position(speedBumpsList.get(i)).title("Speed Bump");
-                                speedBumpMarkerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.speed_bump));
+                                speedBumpMarkerOptions = new MarkerOptions().position(
+                                        speedBumpsList.get(i)).title("Speed Bump");
+                                speedBumpMarkerOptions.icon(BitmapDescriptorFactory
+                                        .fromResource(R.drawable.speed_bump));
                                 mMap.addMarker(speedBumpMarkerOptions);
                             }
                         }
                     }
                 });
-
     }
 
     private void findGeoLocation() {
@@ -305,12 +238,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 userLocation = location;
                 userLatLng = new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 16));
-                //getLocationName(location);
-
             }
         });
-
-
     }
 
     private String getLocationName(Location location){
@@ -319,7 +248,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         try {
             List<Address> addressList = geocoder.getFromLocation(location.getLatitude()
                     , location.getLongitude(), 1);
-
 
             if(addressList != null && addressList.size()>0){
                 Log.d("Address", addressList.get(0).toString());
@@ -345,12 +273,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void calculateDirections(Marker marker){
-
-
-
-
-
-        com.google.maps.model.LatLng dest = new com.google.maps.model.LatLng(marker.getPosition().latitude, marker.getPosition().longitude);
+        com.google.maps.model.LatLng dest = new com.google.maps.model.LatLng(
+                marker.getPosition().latitude, marker.getPosition().longitude);
+        //Request Google Direction API
         DirectionsApiRequest routes = new DirectionsApiRequest(geoApiContext);
         routes.alternatives(true);
         routes.origin(String.valueOf(userLatLng));
@@ -363,28 +288,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         routes.destination(String.valueOf(dest)).setCallback(new PendingResult.Callback<DirectionsResult>() {
             @Override
             public void onResult(DirectionsResult result) {
-                String routeDetails = "";
-                Log.d("Routes", "onResult: routes: " + result.routes[0].toString());
-                Log.d("Routes", "onResult: duration: " + result.routes[0].legs[0].duration);
-                Log.d("Routes", "onResult: distance: " + result.routes[0].legs[0].distance);
-                Log.d("Routes", "onResult: geocodedWayPoints: " + result.geocodedWaypoints[0].toString());
-
-
-                //routeDetails += result.routes[0].toString();
-                routeDetails += result.routes[0].legs[0].duration;
-                routeDetails += result.routes[0].legs[0].distance;
-                routeDetails += result.geocodedWaypoints[0].toString();
-
-                txt_route_info.setText(routeDetails);
-
                 addRoutesToMap(result);
-
             }
-
             @Override
             public void onFailure(Throwable e) {
-                Log.e("Routes", "onFailure: " + e.getMessage() );
-                txt_route_info.setText("Unknown Address");
+                txt_route_info.setText(e.getMessage());
             }
         });
     }
@@ -400,63 +308,35 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     polylineDataList.clear();
                     polylineDataList = new ArrayList<>();
                 }
-
                 double duration = 999999999;
-
                 for(DirectionsRoute route: result.routes){
                     List<com.google.maps.model.LatLng> decodeRoute = PolylineEncoding
                             .decode(route.overviewPolyline.getEncodedPath());
                     List<LatLng> newDecodeRoute = new ArrayList<>();
-
                     for(com.google.maps.model.LatLng latLng: decodeRoute){
                         newDecodeRoute.add(new LatLng(latLng.lat, latLng.lng));
                     }
                     Polyline polyline = mMap.addPolyline(new PolylineOptions().addAll(newDecodeRoute));
-
                     polyline.setColor(ContextCompat.getColor(MapsActivity.this, R.color.darkGrey));
                     polyline.setClickable(true);
                     polylineDataList.add(new PolylineData(polyline, route.legs[0]));
-
                     double mDuration = route.legs[0].duration.inSeconds;
                     if(mDuration < duration){
                         duration = mDuration;
                         onPolylineClick(polyline);
                     }
-
-
                 }
-
-
-
-
             }
-
-
-
         });
     }
 
-
-
     @Override
     public boolean onMarkerClick(@NonNull Marker marker) {
-        //Toast.makeText(this, marker.getTitle(),Toast.LENGTH_LONG).show();
         Location markerLocation = new Location("Marker");
         markerLocation.setLatitude(marker.getPosition().latitude);
         markerLocation.setLongitude(marker.getPosition().longitude);
         marker.setTitle(getLocationName(markerLocation));
-
-
         return false;
-    }
-
-    @Override
-    public void onMapLongClick(@NonNull LatLng latLng) {
-        Location location = new Location("Long click marker");
-        location.setLatitude(latLng.latitude);
-        location.setLongitude(latLng.longitude);
-        mMap.addMarker(new MarkerOptions().position(latLng).title(getLocationName(location)).snippet("Draw Routes?"));
-
     }
 
     @SuppressLint("SetTextI18n")
@@ -469,43 +349,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 polylineData.getPolyline().setColor(
                         ContextCompat.getColor(MapsActivity.this,R.color.blue));
                 polylineData.getPolyline().setZIndex(1);
-                /*LatLng destLocation = new LatLng(
-                        polylineData.getDirectionsLeg().endLocation.lat,
-                        polylineData.getDirectionsLeg().endLocation.lng
-                );*/
-
-                /*if(destinationMarkersList.size() > 1){
-                    destinationMarkersList.get(0).remove();
-                    destinationMarkersList.clear();
-                }
-
-                Marker destMarker = mMap.addMarker(new MarkerOptions()
-                        .position(destLocation)
-                        .title("trip: "+routeNumber)
-                        .snippet("Duration: "+ polylineData.getDirectionsLeg().duration)
-
-                );
-
-                destinationMarkersList.add(destMarker);*/
-
                 txt_route_info.setText("Duration: "+ polylineData.getDirectionsLeg().duration +
                         " Distance: "+ polylineData.getDirectionsLeg().distance +
                         " Duration in Traffic: "+ polylineData.getDirectionsLeg()
                         .durationInTraffic + " Trip: "+routeNumber);
-
-//                destMarker.showInfoWindow();
-
             }else{
                 polylineData.getPolyline().setColor(
                         ContextCompat.getColor(MapsActivity.this,R.color.darkGrey));
                 polylineData.getPolyline().setZIndex(0);
-
             }
         }
-
-
-
     }
+
     private void hideInputKeyboard(){
         View view = this.getCurrentFocus();
         if(view != null){
@@ -522,7 +377,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             markersPositionsList.clear();
             markersList.clear();
             txt_route_info.setText("");
-
         }
         if(polylineDataList.size() > 0){
             for(PolylineData polylineData: polylineDataList){
@@ -530,7 +384,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
             polylineDataList.clear();
         }
-
         Location location = new Location("On map click marker");
         location.setLatitude(latLng.latitude);
         location.setLongitude(latLng.longitude);
@@ -544,18 +397,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         targetMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(HUE_AZURE));
         Marker onMapClickMarker =  mMap.addMarker(targetMarkerOptions);
         markersList.add(onMapClickMarker);
-
-
     }
 
     @Override
     public void onInfoWindowClick(@NonNull  Marker marker) {
+        //Getting the location of the marker
         Location location = new Location("Marker");
         location.setLatitude(marker.getPosition().latitude);
         location.setLongitude(marker.getPosition().longitude);
-
+        //Alert Dialog
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-
         builder.setMessage(marker.getSnippet())
                 .setCancelable(true)
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
@@ -563,19 +414,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     public void onClick(DialogInterface dialogInterface, int i) {
                         dialogInterface.cancel();
                         calculateDirections(marker);
-
-
                     }
                 })
                 .setNegativeButton("No", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
                         dialogInterface.cancel();
-
                     }
                 })
                 .create()
                 .show();
-
     }
 }
