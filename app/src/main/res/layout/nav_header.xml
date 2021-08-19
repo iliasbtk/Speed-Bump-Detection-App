@@ -10,9 +10,9 @@
     >
 
     <ImageView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/ic_launcher_background" />
+        android:layout_width="95dp"
+        android:layout_height="116dp"
+        android:src="@drawable/speed_bump_icon" />
 
     <TextView
         android:id="@+id/txt"
